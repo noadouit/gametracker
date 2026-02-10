@@ -1,0 +1,39 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: gametracker_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gametracker
+      MYSQL_USER: tracker
+      MYSQL_PASSWORD: securepass
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: gametracker_app
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./output:/app/output
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: gametracker
+      DB_USER: tracker
+      DB_PASSWORD: securepass
+    # Cette ligne lance le script automatiquement au démarrage
+    command: bash -c "chmod +x scripts/*.sh && bash ./scripts/run_pipeline.sh && tail -f /dev/null"
+
+volumes:
+  mysql_data:
